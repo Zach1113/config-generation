@@ -101,10 +101,6 @@ func decode[T any](rec *httptest.ResponseRecorder) T {
 	return v
 }
 
-func strPtr(s string) *string {
-	return &s
-}
-
 func truncateAll() {
 	GinkgoHelper()
 	_, err := testDB.ExecContext(context.Background(), `
