@@ -5,7 +5,7 @@ COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
 RUN go build -o /server .
-RUN go build -o /migrate github.com/golang-migrate/migrate/v4/cmd/migrate
+RUN go build -tags 'postgres' -o /migrate github.com/golang-migrate/migrate/v4/cmd/migrate
 
 FROM alpine:3.21
 RUN apk add --no-cache ca-certificates
