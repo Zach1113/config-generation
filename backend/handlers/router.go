@@ -2,15 +2,38 @@ package handlers
 
 import (
 	"database/sql"
+	"net/http"
 
 	"github.com/brian/config-generation/backend/middleware"
 	"github.com/go-chi/chi/v5"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 func NewRouter(db *sql.DB, jwtSecret []byte) chi.Router {
 	r := chi.NewRouter()
 
-	// Public routes: no JWT required.
+	// Prometheus metrics middleware — wraps all routes.
+	r.Use(middleware.PrometheusMetrics)
+
+	// ── Public routes (no JWT) ─────────────────────────────────────────────
+
+	// Liveness probe: always 200 if the process is running.
+	r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	// Readiness probe: 200 only when the DB is reachable.
+	r.Get("/readyz", func(w http.ResponseWriter, r *http.Request) {
+		if err := db.PingContext(r.Context()); err != nil {
+			http.Error(w, "db unavailable", http.StatusServiceUnavailable)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	})
+
+	// Prometheus scrape endpoint.
+	r.Handle("/metrics", promhttp.Handler())
+
 	auth := &AuthHandler{DB: db, JWTSecret: jwtSecret}
 	r.Route("/api/auth", func(r chi.Router) {
 		r.Post("/register", auth.Register)
