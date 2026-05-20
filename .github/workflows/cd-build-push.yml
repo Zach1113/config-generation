@@ -1,0 +1,167 @@
+name: CD Build & Push
+
+on:
+  push:
+    branches:
+      - main
+
+# One active run at a time; queue the latest, discard intermediate ones.
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+env:
+  # GHCR image paths — must match charts/config-gen/values.yaml
+  BACKEND_IMAGE: ghcr.io/brian030128/config-generation/backend
+  FRONTEND_IMAGE: ghcr.io/brian030128/config-generation/frontend
+  # GitOps repository that ArgoCD watches
+  GITOPS_REPO: solar224/config-generation-gitops
+
+jobs:
+  # ── 1. Build & push both images ─────────────────────────────────────────────
+  build-push:
+    name: Build & Push Images
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write   # required to push to GHCR
+    outputs:
+      image-tag: ${{ steps.tag.outputs.tag }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set image tag (full commit SHA)
+        id: tag
+        run: echo "tag=$GITHUB_SHA" >> "$GITHUB_OUTPUT"
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push backend
+        uses: docker/build-push-action@v6
+        with:
+          context: backend
+          push: true
+          tags: |
+            ${{ env.BACKEND_IMAGE }}:${{ github.sha }}
+            ${{ env.BACKEND_IMAGE }}:latest
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,scope=backend,mode=max
+
+      - name: Build and push frontend
+        uses: docker/build-push-action@v6
+        with:
+          context: frontend
+          push: true
+          tags: |
+            ${{ env.FRONTEND_IMAGE }}:${{ github.sha }}
+            ${{ env.FRONTEND_IMAGE }}:latest
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,scope=frontend,mode=max
+
+  # ── 2. Staging — bot pushes directly to gitops main ─────────────────────────
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: build-push
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout gitops repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.GITOPS_REPO }}
+          token: ${{ secrets.GITOPS_TOKEN }}
+          ref: main
+
+      - name: Install yq
+        run: |
+          wget -qO /usr/local/bin/yq \
+            https://github.com/mikefarah/yq/releases/download/v4.44.3/yq_linux_amd64
+          chmod +x /usr/local/bin/yq
+
+      - name: Update image tags in values-staging.yaml
+        env:
+          TAG: ${{ needs.build-push.outputs.image-tag }}
+        run: |
+          yq -i ".image.backend.tag = \"$TAG\"" charts/config-gen/values-staging.yaml
+          yq -i ".image.frontend.tag = \"$TAG\"" charts/config-gen/values-staging.yaml
+
+      - name: Commit and push
+        env:
+          TAG: ${{ needs.build-push.outputs.image-tag }}
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add charts/config-gen/values-staging.yaml
+          if git diff --staged --quiet; then
+            echo "No changes — staging already at $TAG"
+            exit 0
+          fi
+          SHORT="${TAG:0:7}"
+          git commit -m "chore(staging): deploy ${SHORT}
+
+Source: ${{ github.repository }}@${TAG}"
+          git push
+
+  # ── 3. Production — bot opens a PR for human review ─────────────────────────
+  deploy-production:
+    name: Open Production PR
+    runs-on: ubuntu-latest
+    needs: build-push
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout gitops repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.GITOPS_REPO }}
+          token: ${{ secrets.GITOPS_TOKEN }}
+          ref: main
+
+      - name: Install yq
+        run: |
+          wget -qO /usr/local/bin/yq \
+            https://github.com/mikefarah/yq/releases/download/v4.44.3/yq_linux_amd64
+          chmod +x /usr/local/bin/yq
+
+      - name: Update image tags in values-production.yaml
+        env:
+          TAG: ${{ needs.build-push.outputs.image-tag }}
+        run: |
+          yq -i ".image.backend.tag = \"$TAG\"" charts/config-gen/values-production.yaml
+          yq -i ".image.frontend.tag = \"$TAG\"" charts/config-gen/values-production.yaml
+
+      - name: Create or update production PR
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITOPS_TOKEN }}
+          commit-message: |
+            chore(production): deploy ${{ needs.build-push.outputs.image-tag }}
+          # Fixed branch name — new commits update the same PR instead of
+          # creating a new one for every push to main.
+          branch: release/production-next
+          delete-branch: true
+          title: "deploy: ${{ needs.build-push.outputs.image-tag }} → production"
+          body: |
+            ## Production Deployment
+
+            | | |
+            |---|---|
+            | **Image tag** | `${{ needs.build-push.outputs.image-tag }}` |
+            | **Triggered by** | @${{ github.actor }} |
+            | **Source commit** | [${{ github.repository }}@`${{ github.sha }}`](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}) |
+
+            Merge this PR to deploy to production.
+            ArgoCD will auto-sync after merge.
+          labels: production,deployment
