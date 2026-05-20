@@ -116,4 +116,3 @@ func seedAdmin(database *sql.DB) error {
 	}
 	return nil
 }
-

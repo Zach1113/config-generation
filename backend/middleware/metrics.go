@@ -5,8 +5,8 @@ import (
 	"strconv"
 	"time"
 
-	chimw "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/chi/v5"
+	chimw "github.com/go-chi/chi/v5/middleware"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )

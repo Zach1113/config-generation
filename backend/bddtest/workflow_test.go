@@ -191,7 +191,7 @@ db_password: {{ .db_password }}`,
 			// Alice bootstraps billing prod values
 			doRequest("POST", "/api/projects/billing-service/values", map[string]any{
 				"environment_id": prodID,
-				"payload": map[string]any{"env": "prod"},
+				"payload":        map[string]any{"env": "prod"},
 			}, aliceID, "alice")
 
 			By("bob CANNOT write billing prod values (only has staging)")
@@ -203,7 +203,7 @@ db_password: {{ .db_password }}`,
 			By("bob CAN write payments prod values (has wildcard env)")
 			carolBootstraps := doRequest("POST", "/api/projects/payments-service/values", map[string]any{
 				"environment_id": paymentsProdID,
-				"payload": map[string]any{"env": "prod"},
+				"payload":        map[string]any{"env": "prod"},
 			}, carolID, "carol")
 			Expect(carolBootstraps.Code).To(Equal(http.StatusCreated))
 

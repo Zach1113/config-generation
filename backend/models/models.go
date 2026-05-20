@@ -120,27 +120,27 @@ type PRApproval struct {
 }
 
 type PRChange struct {
-	ID               int64           `json:"id"`
-	PRID             int64           `json:"pr_id"`
-	ObjectType       string          `json:"object_type"`
-	ProjectID        *int64          `json:"project_id"`
-	TemplateName     *string         `json:"template_name"`
-	EnvironmentName  *string         `json:"environment_name"`
-	GlobalValuesName *string         `json:"global_values_name"`
-	BaseVersionID    int             `json:"base_version_id"`
-	ProposedPayload  string          `json:"proposed_payload"`
-	CreatedAt        time.Time       `json:"created_at"`
+	ID               int64     `json:"id"`
+	PRID             int64     `json:"pr_id"`
+	ObjectType       string    `json:"object_type"`
+	ProjectID        *int64    `json:"project_id"`
+	TemplateName     *string   `json:"template_name"`
+	EnvironmentName  *string   `json:"environment_name"`
+	GlobalValuesName *string   `json:"global_values_name"`
+	BaseVersionID    int       `json:"base_version_id"`
+	ProposedPayload  string    `json:"proposed_payload"`
+	CreatedAt        time.Time `json:"created_at"`
 }
 
 type Deployment struct {
-	ID              int64      `json:"id"`
-	ProjectID       int64      `json:"project_id"`
-	EnvironmentID   int64      `json:"environment_id"`
-	Status          string     `json:"status"`
-	RolledBackFrom  *int64     `json:"rolled_back_from"`
-	CommitMessage   *string    `json:"commit_message"`
-	CreatedBy       int64      `json:"created_by"`
-	CreatedAt       time.Time  `json:"created_at"`
+	ID             int64     `json:"id"`
+	ProjectID      int64     `json:"project_id"`
+	EnvironmentID  int64     `json:"environment_id"`
+	Status         string    `json:"status"`
+	RolledBackFrom *int64    `json:"rolled_back_from"`
+	CommitMessage  *string   `json:"commit_message"`
+	CreatedBy      int64     `json:"created_by"`
+	CreatedAt      time.Time `json:"created_at"`
 }
 
 type DeploymentEntry struct {

@@ -13,10 +13,10 @@ import (
 )
 
 var (
-	testDB     *sql.DB
-	dbCleanup  func()
-	router     http.Handler
-	jwtSecret  = []byte("test-secret-key-for-bdd-tests")
+	testDB    *sql.DB
+	dbCleanup func()
+	router    http.Handler
+	jwtSecret = []byte("test-secret-key-for-bdd-tests")
 )
 
 func TestBDD(t *testing.T) {
