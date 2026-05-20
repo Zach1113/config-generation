@@ -69,7 +69,7 @@ var _ = Describe("Draft PR Workflow (all changes through PR)", func() {
 			Expect(changes).To(HaveLen(1))
 			change := changes[0].(map[string]any)
 			var payload map[string]any
-			json.Unmarshal([]byte(change["proposed_payload"].(string)), &payload)
+			Expect(json.Unmarshal([]byte(change["proposed_payload"].(string)), &payload)).To(Succeed())
 			Expect(payload["description"]).To(Equal("updated"))
 		})
 	})

@@ -39,14 +39,14 @@ type TemplateRenderResult struct {
 }
 
 type DeployPreviewResponse struct {
-	Results              []TemplateRenderResult         `json:"results"`
-	ValuesPayload        json.RawMessage                `json:"values_payload"`
-	PreviousValues       *json.RawMessage               `json:"previous_values,omitempty"`
-	ValuesVersionID      int                            `json:"values_version_id"`
-	GlobalValues         map[string]json.RawMessage     `json:"global_values"`
-	PreviousGlobalValues map[string]json.RawMessage     `json:"previous_global_values,omitempty"`
-	GlobalValuesVersions map[string]int                 `json:"global_values_versions"`
-	HasErrors            bool                           `json:"has_errors"`
+	Results              []TemplateRenderResult     `json:"results"`
+	ValuesPayload        json.RawMessage            `json:"values_payload"`
+	PreviousValues       *json.RawMessage           `json:"previous_values,omitempty"`
+	ValuesVersionID      int                        `json:"values_version_id"`
+	GlobalValues         map[string]json.RawMessage `json:"global_values"`
+	PreviousGlobalValues map[string]json.RawMessage `json:"previous_global_values,omitempty"`
+	GlobalValuesVersions map[string]int             `json:"global_values_versions"`
+	HasErrors            bool                       `json:"has_errors"`
 }
 
 type DeployResponse struct {

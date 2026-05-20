@@ -162,11 +162,11 @@ var _ = Describe("Permission Model", func() {
 
 			doRequest("POST", "/api/projects/billing/values", map[string]any{
 				"environment_id": stagingID,
-				"payload": map[string]any{"env": "staging"},
+				"payload":        map[string]any{"env": "staging"},
 			}, aliceID, "alice")
 			doRequest("POST", "/api/projects/billing/values", map[string]any{
 				"environment_id": prodID,
-				"payload": map[string]any{"env": "prod"},
+				"payload":        map[string]any{"env": "prod"},
 			}, aliceID, "alice")
 
 			roleID := createCustomRole(aliceID, "alice", "billing", "billing-all-envs", []map[string]any{

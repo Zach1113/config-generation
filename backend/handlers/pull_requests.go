@@ -411,9 +411,12 @@ func (h *PullRequestHandler) WithdrawApproval(w http.ResponseWriter, r *http.Req
 			return
 		}
 		if !met {
-			h.DB.ExecContext(r.Context(), `
+			if _, err := h.DB.ExecContext(r.Context(), `
 				UPDATE pull_requests SET status = 'open', updated_at = NOW() WHERE id = $1
-			`, prID)
+			`, prID); err != nil {
+				writeError(w, http.StatusInternalServerError, "database error", "internal")
+				return
+			}
 			pr.Status = "open"
 		}
 		pr.ApprovalCondition = condition
