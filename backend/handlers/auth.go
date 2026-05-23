@@ -42,6 +42,7 @@ type AuthConfig struct {
 	OIDCBrowserAuthURL  string
 	OIDCScopes          []string
 	OIDCProviderName    string
+	OIDCSuperuserEmails []string
 	SessionCookieName   string
 	SessionCookieSecure bool
 	SessionSameSite     http.SameSite
@@ -87,6 +88,7 @@ func AuthConfigFromEnv(jwtSecret []byte) AuthConfig {
 	cfg.OIDCRedirectURL = strings.TrimSpace(os.Getenv("OIDC_REDIRECT_URL"))
 	cfg.OIDCBrowserAuthURL = strings.TrimSpace(os.Getenv("OIDC_BROWSER_AUTH_URL"))
 	cfg.OIDCProviderName = envString("OIDC_PROVIDER_NAME", cfg.OIDCProviderName)
+	cfg.OIDCSuperuserEmails = envList("OIDC_SUPERUSER_EMAILS")
 	cfg.SessionCookieName = envString("SESSION_COOKIE_NAME", cfg.SessionCookieName)
 	cfg.SessionCookieSecure = envBool("SESSION_COOKIE_SECURE", cfg.SessionCookieSecure)
 	cfg.SessionSameSite = parseSameSite(envString("SESSION_COOKIE_SAMESITE", "Lax"))
@@ -413,7 +415,7 @@ func (h *AuthHandler) ensureOIDC(ctx context.Context) (*oauth2.Config, *oidc.IDT
 func (h *AuthHandler) findOrCreateOIDCUser(ctx context.Context, issuer, subject string, claims oidcUserClaims) (models.User, error) {
 	user, err := h.loadOIDCUserByIdentity(ctx, issuer, subject)
 	if err == nil {
-		return user, nil
+		return user, h.promoteOIDCSuperuser(ctx, user.ID, claims)
 	}
 	if !errors.Is(err, sql.ErrNoRows) {
 		return user, err
@@ -422,6 +424,7 @@ func (h *AuthHandler) findOrCreateOIDCUser(ctx context.Context, issuer, subject 
 	username := oidcUsername(issuer, subject, claims)
 	displayName := oidcDisplayName(username, claims)
 	email := strings.TrimSpace(strings.ToLower(claims.Email))
+	superuser := h.isOIDCSuperuser(claims)
 
 	tx, err := h.DB.BeginTx(ctx, nil)
 	if err != nil {
@@ -430,19 +433,19 @@ func (h *AuthHandler) findOrCreateOIDCUser(ctx context.Context, issuer, subject 
 	defer tx.Rollback()
 
 	err = tx.QueryRowContext(ctx,
-		`INSERT INTO users (username, display_name, password_hash)
-		 VALUES ($1, $2, '')
+		`INSERT INTO users (username, display_name, password_hash, superuser)
+		 VALUES ($1, $2, '', $3)
 		 RETURNING id, username, display_name, created_at`,
-		username, displayName,
+		username, displayName, superuser,
 	).Scan(&user.ID, &user.Username, &user.DisplayName, &user.CreatedAt)
 	if err != nil && isUniqueViolation(err) {
 		username = fallbackOIDCUsername(issuer, subject)
 		displayName = oidcDisplayName(username, claims)
 		err = tx.QueryRowContext(ctx,
-			`INSERT INTO users (username, display_name, password_hash)
-			 VALUES ($1, $2, '')
+			`INSERT INTO users (username, display_name, password_hash, superuser)
+			 VALUES ($1, $2, '', $3)
 			 RETURNING id, username, display_name, created_at`,
-			username, displayName,
+			username, displayName, superuser,
 		).Scan(&user.ID, &user.Username, &user.DisplayName, &user.CreatedAt)
 	}
 	if err != nil {
@@ -462,6 +465,30 @@ func (h *AuthHandler) findOrCreateOIDCUser(ctx context.Context, issuer, subject 
 	}
 
 	return user, tx.Commit()
+}
+
+func (h *AuthHandler) promoteOIDCSuperuser(ctx context.Context, userID int64, claims oidcUserClaims) error {
+	if !h.isOIDCSuperuser(claims) {
+		return nil
+	}
+	_, err := h.DB.ExecContext(ctx, `UPDATE users SET superuser = true WHERE id = $1`, userID)
+	return err
+}
+
+func (h *AuthHandler) isOIDCSuperuser(claims oidcUserClaims) bool {
+	if !claims.EmailVerified {
+		return false
+	}
+	email := strings.TrimSpace(strings.ToLower(claims.Email))
+	if email == "" {
+		return false
+	}
+	for _, allowed := range h.Config.OIDCSuperuserEmails {
+		if email == strings.TrimSpace(strings.ToLower(allowed)) {
+			return true
+		}
+	}
+	return false
 }
 
 func (h *AuthHandler) loadOIDCUserByIdentity(ctx context.Context, issuer, subject string) (models.User, error) {
@@ -582,6 +609,23 @@ func envBool(name string, fallback bool) bool {
 	default:
 		return fallback
 	}
+}
+
+func envList(name string) []string {
+	value := strings.TrimSpace(os.Getenv(name))
+	if value == "" {
+		return nil
+	}
+	parts := strings.FieldsFunc(value, func(r rune) bool {
+		return r == ',' || r == ' ' || r == '\n' || r == '\t'
+	})
+	values := make([]string, 0, len(parts))
+	for _, part := range parts {
+		if part = strings.TrimSpace(part); part != "" {
+			values = append(values, part)
+		}
+	}
+	return values
 }
 
 func parseSameSite(value string) http.SameSite {
