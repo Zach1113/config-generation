@@ -18,6 +18,13 @@ type AuthResponse struct {
 	User  User   `json:"user"`
 }
 
+type AuthConfigResponse struct {
+	OIDCEnabled          bool   `json:"oidc_enabled"`
+	OIDCProviderName     string `json:"oidc_provider_name"`
+	PasswordLoginEnabled bool   `json:"password_login_enabled"`
+	RegistrationEnabled  bool   `json:"registration_enabled"`
+}
+
 type TemplateVariable struct {
 	Name    string  `json:"name"`
 	Default *string `json:"default,omitempty"`

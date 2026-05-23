@@ -42,6 +42,23 @@ All timestamps are stored as `TIMESTAMPTZ`. All primary keys use `BIGINT` auto-i
 | `superuser` | `BOOLEAN` | NOT NULL, DEFAULT `false` |
 | `created_at` | `TIMESTAMPTZ` | NOT NULL, DEFAULT now() |
 
+### 2.4 `user_identities`
+
+Links external OIDC identities to local users.
+
+| Column | Type | Constraints |
+|---|---|---|
+| `id` | `BIGINT` | PK, auto-increment |
+| `user_id` | `BIGINT` | FK → `users.id`, NOT NULL, ON DELETE CASCADE |
+| `provider` | `TEXT` | NOT NULL |
+| `issuer` | `TEXT` | NOT NULL |
+| `subject` | `TEXT` | NOT NULL |
+| `email` | `TEXT` | |
+| `created_at` | `TIMESTAMPTZ` | NOT NULL, DEFAULT now() |
+
+- UNIQUE(`issuer`, `subject`)
+- INDEX(`user_id`)
+
 ---
 
 ## 3. Versioned Object Tables

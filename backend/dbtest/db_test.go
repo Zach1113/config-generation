@@ -7,6 +7,7 @@ import (
 
 var expectedTables = []string{
 	"users",
+	"user_identities",
 	"environments",
 	"projects",
 	"project_config_templates",
