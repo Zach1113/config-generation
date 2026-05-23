@@ -4,6 +4,8 @@
 
 The system supports local username/password authentication and optional OIDC login using the OAuth 2.0 authorization-code flow. Both flows issue the app's internal JWT and set it as an HttpOnly session cookie. Existing Bearer JWT requests remain supported for API compatibility and tests.
 
+Authentication only proves identity. POST access is still controlled by permissions. The seeded admin account and configured superuser identities bypass permission checks; other users need roles such as `create:project` or project-scoped permissions.
+
 ## Session Cookies
 
 - Session cookie: `configgen_session` by default.
@@ -47,6 +49,7 @@ Auto-provisioned OIDC users:
 - Fall back to a stable provider-derived username if email is missing, unverified, or already taken.
 - Store `password_hash = ''`, so OIDC users cannot use password login unless explicitly updated later.
 - Receive no roles automatically. They can sign in but need an admin to assign roles before they can access protected resources.
+- Are promoted to superuser when their verified email is listed in `OIDC_SUPERUSER_EMAILS`.
 
 ## Auth Endpoints
 
@@ -94,6 +97,7 @@ Clears the session and CSRF cookies. If a session cookie is present, the request
 | `OIDC_BROWSER_AUTH_URL` | | Optional browser-facing authorization URL override for local Docker setups |
 | `OIDC_SCOPES` | `openid email profile` | Space-separated provider scopes |
 | `OIDC_PROVIDER_NAME` | `SSO` | Login button/provider display name |
+| `OIDC_SUPERUSER_EMAILS` | | Comma- or space-separated verified OIDC email addresses that should be promoted to app superusers |
 | `SESSION_COOKIE_NAME` | `configgen_session` | App session cookie name |
 | `SESSION_COOKIE_SECURE` | `true` | Whether cookies require HTTPS |
 | `SESSION_COOKIE_SAMESITE` | `Lax` | `Lax`, `Strict`, or `None` |
@@ -117,6 +121,7 @@ http://localhost:3000/api/auth/oidc/callback
 The backend discovers Dex on the Docker network at `http://dex:5556/dex`, while the browser is sent to `http://localhost:5556/dex/auth`.
 
 Static test users are configured in `dev/dex/config.yaml`. The local password for both users is `password`.
+`docker-compose.yml` promotes `alice@example.com` to superuser for local development.
 
 ## Admin User
 
