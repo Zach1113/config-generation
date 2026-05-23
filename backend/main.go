@@ -47,7 +47,7 @@ func main() {
 		log.Fatalf("failed to seed admin user: %v", err)
 	}
 
-	router := handlers.NewRouter(database, []byte(jwtSecret))
+	router := handlers.NewRouterWithAuthConfig(database, handlers.AuthConfigFromEnv([]byte(jwtSecret)))
 
 	addr := ":8080"
 	if port := os.Getenv("PORT"); port != "" {

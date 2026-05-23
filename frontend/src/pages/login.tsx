@@ -1,7 +1,12 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { useAuth } from "@/lib/auth"
-import { login as apiLogin, register as apiRegister } from "@/api/auth"
+import {
+  getAuthConfig,
+  login as apiLogin,
+  register as apiRegister,
+  type AuthConfig,
+} from "@/api/auth"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -17,8 +22,9 @@ function getErrorMessage(err: unknown): string {
 }
 
 export default function LoginPage() {
-  const { login } = useAuth()
+  const { login, user, loading } = useAuth()
   const navigate = useNavigate()
+  const [authConfig, setAuthConfig] = useState<AuthConfig | null>(null)
 
   // Login form state
   const [loginUsername, setLoginUsername] = useState("")
@@ -34,6 +40,25 @@ export default function LoginPage() {
   const [regError, setRegError] = useState("")
   const [regLoading, setRegLoading] = useState(false)
 
+  useEffect(() => {
+    getAuthConfig()
+      .then(setAuthConfig)
+      .catch(() => {
+        setAuthConfig({
+          oidc_enabled: false,
+          oidc_provider_name: "SSO",
+          password_login_enabled: true,
+          registration_enabled: true,
+        })
+      })
+  }, [])
+
+  useEffect(() => {
+    if (!loading && user) {
+      navigate("/projects", { replace: true })
+    }
+  }, [loading, navigate, user])
+
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
     setLoginError("")
@@ -44,7 +69,7 @@ export default function LoginPage() {
     setLoginLoading(true)
     try {
       const res = await apiLogin(loginUsername.trim(), loginPassword)
-      login(res.token)
+      login(res)
       navigate("/projects", { replace: true })
     } catch (err) {
       setLoginError(getErrorMessage(err))
@@ -75,7 +100,7 @@ export default function LoginPage() {
         regPassword,
         regDisplayName.trim() || undefined,
       )
-      login(res.token)
+      login(res)
       navigate("/projects", { replace: true })
     } catch (err) {
       setRegError(getErrorMessage(err))
@@ -84,6 +109,16 @@ export default function LoginPage() {
     }
   }
 
+  function handleSSOLogin() {
+    const returnTo = encodeURIComponent("/projects")
+    window.location.href = `/api/auth/oidc/login?return_to=${returnTo}`
+  }
+
+  const showPasswordLogin = authConfig?.password_login_enabled ?? true
+  const showRegistration = authConfig?.registration_enabled ?? true
+  const showSSO = authConfig?.oidc_enabled ?? false
+  const defaultTab = showPasswordLogin ? "login" : "register"
+
   return (
     <div className="flex min-h-screen items-center justify-center">
       <Card className="w-full max-w-md">
@@ -91,104 +126,119 @@ export default function LoginPage() {
           <CardTitle>Config Generation</CardTitle>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="login">
-            <TabsList className="w-full">
-              <TabsTrigger value="login" className="flex-1">
-                Login
-              </TabsTrigger>
-              <TabsTrigger value="register" className="flex-1">
-                Register
-              </TabsTrigger>
-            </TabsList>
+          {showSSO && (
+            <div className="mb-4">
+              <Button type="button" className="w-full" onClick={handleSSOLogin}>
+                Sign in with {authConfig?.oidc_provider_name ?? "SSO"}
+              </Button>
+            </div>
+          )}
+          {(showPasswordLogin || showRegistration) && (
+            <Tabs defaultValue={defaultTab}>
+              {showPasswordLogin && showRegistration && (
+                <TabsList className="w-full">
+                  <TabsTrigger value="login" className="flex-1">
+                    Login
+                  </TabsTrigger>
+                  <TabsTrigger value="register" className="flex-1">
+                    Register
+                  </TabsTrigger>
+                </TabsList>
+              )}
 
-            <TabsContent value="login">
-              <form onSubmit={handleLogin} className="space-y-4 pt-4">
-                <div className="space-y-2">
-                  <Label htmlFor="login-username">Username</Label>
-                  <Input
-                    id="login-username"
-                    type="text"
-                    autoComplete="username"
-                    placeholder="Enter your username"
-                    value={loginUsername}
-                    onChange={(e) => setLoginUsername(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="login-password">Password</Label>
-                  <Input
-                    id="login-password"
-                    type="password"
-                    autoComplete="current-password"
-                    placeholder="Enter your password"
-                    value={loginPassword}
-                    onChange={(e) => setLoginPassword(e.target.value)}
-                  />
-                </div>
-                {loginError && (
-                  <p className="text-sm text-destructive">{loginError}</p>
-                )}
-                <Button type="submit" className="w-full" disabled={loginLoading}>
-                  {loginLoading ? "Signing in..." : "Sign In"}
-                </Button>
-              </form>
-            </TabsContent>
+              {showPasswordLogin && (
+                <TabsContent value="login">
+                  <form onSubmit={handleLogin} className="space-y-4 pt-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="login-username">Username</Label>
+                      <Input
+                        id="login-username"
+                        type="text"
+                        autoComplete="username"
+                        placeholder="Enter your username"
+                        value={loginUsername}
+                        onChange={(e) => setLoginUsername(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="login-password">Password</Label>
+                      <Input
+                        id="login-password"
+                        type="password"
+                        autoComplete="current-password"
+                        placeholder="Enter your password"
+                        value={loginPassword}
+                        onChange={(e) => setLoginPassword(e.target.value)}
+                      />
+                    </div>
+                    {loginError && (
+                      <p className="text-sm text-destructive">{loginError}</p>
+                    )}
+                    <Button type="submit" className="w-full" disabled={loginLoading}>
+                      {loginLoading ? "Signing in..." : "Sign In"}
+                    </Button>
+                  </form>
+                </TabsContent>
+              )}
 
-            <TabsContent value="register">
-              <form onSubmit={handleRegister} className="space-y-4 pt-4">
-                <div className="space-y-2">
-                  <Label htmlFor="reg-username">Username</Label>
-                  <Input
-                    id="reg-username"
-                    type="text"
-                    autoComplete="username"
-                    placeholder="Choose a username"
-                    value={regUsername}
-                    onChange={(e) => setRegUsername(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="reg-display-name">Display Name</Label>
-                  <Input
-                    id="reg-display-name"
-                    type="text"
-                    autoComplete="name"
-                    placeholder="Optional"
-                    value={regDisplayName}
-                    onChange={(e) => setRegDisplayName(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="reg-password">Password</Label>
-                  <Input
-                    id="reg-password"
-                    type="password"
-                    autoComplete="new-password"
-                    placeholder="At least 8 characters"
-                    value={regPassword}
-                    onChange={(e) => setRegPassword(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="reg-confirm">Confirm Password</Label>
-                  <Input
-                    id="reg-confirm"
-                    type="password"
-                    autoComplete="new-password"
-                    placeholder="Repeat your password"
-                    value={regConfirm}
-                    onChange={(e) => setRegConfirm(e.target.value)}
-                  />
-                </div>
-                {regError && (
-                  <p className="text-sm text-destructive">{regError}</p>
-                )}
-                <Button type="submit" className="w-full" disabled={regLoading}>
-                  {regLoading ? "Creating account..." : "Create Account"}
-                </Button>
-              </form>
-            </TabsContent>
-          </Tabs>
+              {showRegistration && (
+                <TabsContent value="register">
+                  <form onSubmit={handleRegister} className="space-y-4 pt-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="reg-username">Username</Label>
+                      <Input
+                        id="reg-username"
+                        type="text"
+                        autoComplete="username"
+                        placeholder="Choose a username"
+                        value={regUsername}
+                        onChange={(e) => setRegUsername(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="reg-display-name">Display Name</Label>
+                      <Input
+                        id="reg-display-name"
+                        type="text"
+                        autoComplete="name"
+                        placeholder="Optional"
+                        value={regDisplayName}
+                        onChange={(e) => setRegDisplayName(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="reg-password">Password</Label>
+                      <Input
+                        id="reg-password"
+                        type="password"
+                        autoComplete="new-password"
+                        placeholder="At least 8 characters"
+                        value={regPassword}
+                        onChange={(e) => setRegPassword(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="reg-confirm">Confirm Password</Label>
+                      <Input
+                        id="reg-confirm"
+                        type="password"
+                        autoComplete="new-password"
+                        placeholder="Repeat your password"
+                        value={regConfirm}
+                        onChange={(e) => setRegConfirm(e.target.value)}
+                      />
+                    </div>
+                    {regError && (
+                      <p className="text-sm text-destructive">{regError}</p>
+                    )}
+                    <Button type="submit" className="w-full" disabled={regLoading}>
+                      {regLoading ? "Creating account..." : "Create Account"}
+                    </Button>
+                  </form>
+                </TabsContent>
+              )}
+            </Tabs>
+          )}
         </CardContent>
       </Card>
     </div>

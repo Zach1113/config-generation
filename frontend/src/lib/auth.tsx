@@ -1,17 +1,17 @@
 import {
   createContext,
   useContext,
+  useEffect,
   useState,
   useCallback,
   type ReactNode,
 } from "react"
-import { jwtDecode } from "jwt-decode"
-
-interface JwtClaims {
-  user_id: number
-  username: string
-  exp?: number
-}
+import {
+  createSession,
+  logout as apiLogout,
+  me,
+  type AuthResponse,
+} from "@/api/auth"
 
 interface AuthUser {
   id: number
@@ -21,55 +21,88 @@ interface AuthUser {
 interface AuthContextValue {
   token: string | null
   user: AuthUser | null
-  login: (token: string) => boolean
-  logout: () => void
+  loading: boolean
+  login: (response: AuthResponse) => void
+  logout: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
-function parseToken(token: string): AuthUser | null {
-  try {
-    const claims = jwtDecode<JwtClaims>(token)
-    if (claims.exp && claims.exp * 1000 < Date.now()) {
-      return null
-    }
-    return { id: claims.user_id, username: claims.username }
-  } catch {
-    return null
-  }
-}
-
-function getStoredAuth(): { token: string; user: AuthUser } | null {
-  const token = localStorage.getItem("auth_token")
-  if (!token) return null
-  const user = parseToken(token)
-  if (!user) {
-    localStorage.removeItem("auth_token")
-    return null
-  }
-  return { token, user }
+function toAuthUser(user: { id: number; username: string }): AuthUser {
+  return { id: user.id, username: user.username }
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [auth, setAuth] = useState(getStoredAuth)
+  const [auth, setAuth] = useState<{ token: string; user: AuthUser } | null>(null)
+  const [loading, setLoading] = useState(true)
 
-  const login = useCallback((token: string) => {
-    const user = parseToken(token)
-    if (!user) return false
-    localStorage.setItem("auth_token", token)
-    setAuth({ token, user })
-    return true
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadAuth() {
+      try {
+        const user = await me()
+        if (!cancelled) {
+          setAuth({ token: "cookie-session", user: toAuthUser(user) })
+        }
+        return
+      } catch {
+        // Try one-time migration from the old localStorage bearer token.
+      }
+
+      const oldToken = localStorage.getItem("auth_token")
+      if (oldToken) {
+        try {
+          const response = await createSession(oldToken)
+          localStorage.removeItem("auth_token")
+          if (!cancelled) {
+            setAuth({
+              token: "cookie-session",
+              user: toAuthUser(response.user),
+            })
+          }
+          return
+        } catch {
+          localStorage.removeItem("auth_token")
+        }
+      }
+
+      if (!cancelled) {
+        setAuth(null)
+      }
+    }
+
+    loadAuth().finally(() => {
+      if (!cancelled) setLoading(false)
+    })
+
+    return () => {
+      cancelled = true
+    }
   }, [])
 
-  const logout = useCallback(() => {
+  const login = useCallback((response: AuthResponse) => {
     localStorage.removeItem("auth_token")
-    setAuth(null)
+    setAuth({
+      token: "cookie-session",
+      user: toAuthUser(response.user),
+    })
+  }, [])
+
+  const logout = useCallback(async () => {
+    try {
+      await apiLogout()
+    } finally {
+      localStorage.removeItem("auth_token")
+      setAuth(null)
+    }
   }, [])
 
   return (
     <AuthContext.Provider value={{
       token: auth?.token ?? null,
       user: auth?.user ?? null,
+      loading,
       login,
       logout,
     }}>

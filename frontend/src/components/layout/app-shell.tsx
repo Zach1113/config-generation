@@ -4,9 +4,17 @@ import { Sidebar } from "./sidebar"
 import { Breadcrumbs } from "./breadcrumbs"
 
 export function AppShell() {
-  const { token } = useAuth()
+  const { user, loading } = useAuth()
 
-  if (!token) {
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center text-sm text-muted-foreground">
+        Loading...
+      </div>
+    )
+  }
+
+  if (!user) {
     return <Navigate to="/login" replace />
   }
 
