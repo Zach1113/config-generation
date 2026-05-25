@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1250 500" width="100%" height="100%" shape-rendering="geometricPrecision" text-rendering="geometricPrecision">
+  <defs>
+    <style>
+      /* 頂級企業排版設定：使用系統原生無襯線字體堆疊以確保絕對的俐落感 */
+      .text-confi {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        font-weight: 900;
+        font-size: 200px;
+        fill: #0F172A; /* 頂級深海軍藍 / 黑 */
+        letter-spacing: -6px;
+      }
+      .text-gen {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        font-weight: 300;
+        font-size: 200px;
+        fill: #64748B; /* 內斂石墨灰 */
+        letter-spacing: -3px;
+      }
+    </style>
+  </defs>
+
+  <rect width="1250" height="500" fill="#FFFFFF"/>
+
+  <g>
+    <text x="895" y="320" text-anchor="end" dominant-baseline="alphabetic">
+      <tspan class="text-confi">Confi</tspan>
+      <tspan class="text-gen">Gen</tspan>
+    </text>
+
+    <path d="M 905 180 
+             L 975 180 
+             L 1045 250 
+             L 975 320 
+             L 905 320 
+             L 975 250 Z" 
+          fill="#0F172A" />
+
+    <path d="M 995 180 
+             L 1065 180 
+             L 1135 250 
+             L 1065 320 
+             L 995 320 
+             L 1065 250 Z" 
+          fill="#2563EB" />
+  </g>
+</svg>

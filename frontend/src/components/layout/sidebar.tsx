@@ -12,6 +12,7 @@ import {
 import { useAuth } from "@/lib/auth"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { Logo } from "@/components/brand/logo"
 import {
   Dialog,
   DialogContent,
@@ -55,30 +56,10 @@ export function Sidebar() {
             title="Expand sidebar"
             className="flex rounded-md transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
           >
-            <img
-              src="/configen-icon-light.svg"
-              alt="ConfiGen"
-              className="h-9 w-9 dark:hidden"
-            />
-            <img
-              src="/configen-icon-dark.svg"
-              alt="ConfiGen"
-              className="hidden h-9 w-9 dark:block"
-            />
+            <Logo variant="icon" className="h-9 w-9" />
           </button>
         ) : (
-          <>
-            <img
-              src="/configen-logo-light.svg"
-              alt="ConfiGen"
-              className="h-18 w-auto dark:hidden"
-            />
-            <img
-              src="/configen-logo-dark.svg"
-              alt="ConfiGen"
-              className="hidden h-18 w-auto dark:block"
-            />
-          </>
+          <Logo variant="wordmark" className="h-18 w-auto" />
         )}
         {!collapsed && (
           <Button

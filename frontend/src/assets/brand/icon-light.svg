@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="100%" height="100%" shape-rendering="geometricPrecision">
+  <rect width="500" height="500" fill="#FFFFFF"/>
+
+  <g>
+    <path fill="#0F172A" 
+          d="M 20 110 
+             L 160 110 
+             L 300 250 
+             L 160 390 
+             L 20 390 
+             L 160 250 Z" />
+
+    <path fill="#2563EB" 
+          d="M 200 110 
+             L 340 110 
+             L 480 250 
+             L 340 390 
+             L 200 390 
+             L 340 250 Z" />
+  </g>
+</svg>
