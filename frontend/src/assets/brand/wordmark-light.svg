@@ -19,7 +19,7 @@
     </style>
   </defs>
 
-  <rect width="1250" height="500" fill="#FFFFFF"/>
+  <rect width="1250" height="500" fill="none"/>
 
   <g>
     <text x="895" y="320" text-anchor="end" dominant-baseline="alphabetic">
