@@ -10,7 +10,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { AxiosError } from "axios"
 
@@ -120,12 +120,14 @@ export default function LoginPage() {
   const defaultTab = showPasswordLogin ? "login" : "register"
 
   return (
-    <div className="flex min-h-screen items-center justify-center">
+    <div className="relative flex min-h-screen items-center justify-center">
+      <img
+        src="/configen-logo-light.svg"
+        alt="ConfiGen"
+        className="absolute left-[30px] top-[18px] h-25 w-auto"
+      />
       <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle>confiGen</CardTitle>
-        </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           {showSSO && (
             <div className="space-y-4">
               <Button type="button" className="w-full" onClick={handleSSOLogin}>

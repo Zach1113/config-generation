@@ -1,6 +1,14 @@
 import { NavLink } from "react-router-dom"
 import { useState } from "react"
-import { FolderOpen, Globe, GitPullRequest, Pencil, Rocket, LogOut } from "lucide-react"
+import {
+  ChevronsLeft,
+  FolderOpen,
+  GitPullRequest,
+  Globe,
+  LogOut,
+  Pencil,
+  Rocket,
+} from "lucide-react"
 import { useAuth } from "@/lib/auth"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -25,27 +33,76 @@ const navItems = [
 export function Sidebar() {
   const { user, logout } = useAuth()
   const [signOutOpen, setSignOutOpen] = useState(false)
+  const [collapsed, setCollapsed] = useState(false)
 
   return (
-    <aside className="flex h-screen w-60 flex-col border-r bg-sidebar text-sidebar-foreground">
-      <div className="flex h-14 items-center gap-3 px-4">
-        <div
-          aria-hidden="true"
-          className="flex size-8 items-center justify-center rounded-lg bg-primary text-[11px] font-semibold tracking-wide text-primary-foreground shadow-xs"
-        >
-          CG
-        </div>
-        <span className="font-semibold tracking-tight">confiGen</span>
+    <aside
+      className={cn(
+        "flex h-screen flex-col border-r bg-sidebar text-sidebar-foreground transition-[width] duration-200",
+        collapsed ? "w-16" : "w-60",
+      )}
+    >
+      <div
+        className={cn(
+          "relative flex h-14 items-center gap-2 px-4",
+          collapsed && "justify-center px-2",
+        )}
+      >
+        {collapsed ? (
+          <button
+            type="button"
+            onClick={() => setCollapsed(false)}
+            title="Expand sidebar"
+            className="flex rounded-md transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+          >
+            <img
+              src="/configen-icon-light.svg"
+              alt="ConfiGen"
+              className="h-9 w-9 dark:hidden"
+            />
+            <img
+              src="/configen-icon-dark.svg"
+              alt="ConfiGen"
+              className="hidden h-9 w-9 dark:block"
+            />
+          </button>
+        ) : (
+          <>
+            <img
+              src="/configen-logo-light.svg"
+              alt="ConfiGen"
+              className="h-18 w-auto dark:hidden"
+            />
+            <img
+              src="/configen-logo-dark.svg"
+              alt="ConfiGen"
+              className="hidden h-18 w-auto dark:block"
+            />
+          </>
+        )}
+        {!collapsed && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="ml-auto size-8 border border-border bg-background/80 shadow-xs hover:bg-accent dark:border-white/15 dark:bg-white/5 dark:hover:bg-white/10"
+            onClick={() => setCollapsed(true)}
+            title="Collapse sidebar"
+          >
+            <ChevronsLeft className="h-5 w-5" />
+          </Button>
+        )}
       </div>
       <Separator />
-      <nav className="flex-1 space-y-1 p-2">
+      <nav className={cn("flex-1 space-y-1 p-2", collapsed && "px-2")}>
         {navItems.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}
+            title={collapsed ? item.label : undefined}
             className={({ isActive }) =>
               cn(
                 "relative flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
+                collapsed && "justify-center px-0",
                 isActive
                   ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground before:absolute before:left-0 before:top-1/2 before:h-5 before:w-0.5 before:-translate-y-1/2 before:rounded-full before:bg-sidebar-accent-foreground"
                   : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground",
@@ -53,13 +110,23 @@ export function Sidebar() {
             }
           >
             <item.icon className="h-4 w-4" />
-            {item.label}
+            {!collapsed && item.label}
           </NavLink>
         ))}
       </nav>
       <Separator />
-      <div className="flex items-center justify-between p-3">
-        <span className="truncate text-sm text-muted-foreground">
+      <div
+        className={cn(
+          "flex items-center justify-between p-3",
+          collapsed && "justify-center px-2",
+        )}
+      >
+        <span
+          className={cn(
+            "truncate text-sm text-muted-foreground",
+            collapsed && "sr-only",
+          )}
+        >
           {user?.username ?? "Unknown"}
         </span>
         <Button
