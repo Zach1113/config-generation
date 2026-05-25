@@ -123,18 +123,25 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>Config Generation</CardTitle>
+          <CardTitle>confiGen</CardTitle>
         </CardHeader>
         <CardContent>
           {showSSO && (
-            <div className="mb-4">
+            <div className="space-y-4">
               <Button type="button" className="w-full" onClick={handleSSOLogin}>
                 Sign in with {authConfig?.oidc_provider_name ?? "SSO"}
               </Button>
+              {(showPasswordLogin || showRegistration) && (
+                <div className="flex items-center gap-3 text-xs font-medium text-muted-foreground">
+                  <div className="h-px flex-1 bg-border" />
+                  <span>OR</span>
+                  <div className="h-px flex-1 bg-border" />
+                </div>
+              )}
             </div>
           )}
           {(showPasswordLogin || showRegistration) && (
-            <Tabs defaultValue={defaultTab}>
+            <Tabs defaultValue={defaultTab} className={showSSO ? "mt-4" : ""}>
               {showPasswordLogin && showRegistration && (
                 <TabsList className="w-full">
                   <TabsTrigger value="login" className="flex-1">
