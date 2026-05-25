@@ -33,22 +33,22 @@ const (
 )
 
 type AuthConfig struct {
-	JWTSecret           []byte
-	OIDCEnabled         bool
-	OIDCIssuerURL       string
-	OIDCClientID        string
-	OIDCClientSecret    string
-	OIDCRedirectURL     string
-	OIDCBrowserAuthURL  string
-	OIDCScopes          []string
-	OIDCProviderName    string
-	OIDCSuperuserEmails []string
+	JWTSecret               []byte
+	OIDCEnabled             bool
+	OIDCIssuerURL           string
+	OIDCClientID            string
+	OIDCClientSecret        string
+	OIDCRedirectURL         string
+	OIDCBrowserAuthURL      string
+	OIDCScopes              []string
+	OIDCProviderName        string
+	OIDCSuperuserEmails     []string
 	OIDCAllowedEmailDomains []string
-	SessionCookieName   string
-	SessionCookieSecure bool
-	SessionSameSite     http.SameSite
-	PasswordLogin       bool
-	Registration        bool
+	SessionCookieName       string
+	SessionCookieSecure     bool
+	SessionSameSite         http.SameSite
+	PasswordLogin           bool
+	Registration            bool
 }
 
 type AuthHandler struct {
