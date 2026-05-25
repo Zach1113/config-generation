@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Logo } from "@/components/brand/logo"
 import { AxiosError } from "axios"
 
 function getErrorMessage(err: unknown): string {
@@ -121,9 +122,8 @@ export default function LoginPage() {
 
   return (
     <div className="relative flex min-h-screen items-center justify-center">
-      <img
-        src="/configen-logo-light.svg"
-        alt="ConfiGen"
+      <Logo
+        variant="wordmark"
         className="absolute left-[30px] top-[18px] h-25 w-auto"
       />
       <Card className="w-full max-w-md">

@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="100%" height="100%" shape-rendering="geometricPrecision">
+  <defs>
+    <style>
+      /* 預設亮色模式顏色設定 */
+      .icon-base { fill: #0F172A; transition: fill 0.3s ease; } /* 深海軍藍 */
+      .icon-accent { fill: #2563EB; transition: fill 0.3s ease; } /* 企業藍 */
+
+      /* 自動適應系統或瀏覽器的暗色模式 */
+      @media (prefers-color-scheme: dark) {
+        .icon-base { fill: #FFFFFF; } /* 純白 */
+        .icon-accent { fill: #3B82F6; } /* 明亮科技藍 */
+      }
+    </style>
+  </defs>
+
+  <rect width="500" height="500" fill="none"/>
+
+  <g>
+    <path class="icon-base" 
+          d="M 20 110 
+             L 160 110 
+             L 300 250 
+             L 160 390 
+             L 20 390 
+             L 160 250 Z" />
+
+    <path class="icon-accent" 
+          d="M 200 110 
+             L 340 110 
+             L 480 250 
+             L 340 390 
+             L 200 390 
+             L 340 250 Z" />
+  </g>
+</svg>
