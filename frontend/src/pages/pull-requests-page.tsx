@@ -39,7 +39,12 @@ export default function PullRequestsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">Pull Requests</h1>
+      <div className="space-y-1">
+        <h1 className="text-2xl font-semibold">Pull Requests</h1>
+        <p className="text-sm text-muted-foreground">
+          Review, approve, and track proposed configuration changes.
+        </p>
+      </div>
 
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
