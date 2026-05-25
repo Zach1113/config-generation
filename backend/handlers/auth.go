@@ -43,6 +43,7 @@ type AuthConfig struct {
 	OIDCScopes          []string
 	OIDCProviderName    string
 	OIDCSuperuserEmails []string
+	OIDCAllowedEmailDomains []string
 	SessionCookieName   string
 	SessionCookieSecure bool
 	SessionSameSite     http.SameSite
@@ -89,6 +90,7 @@ func AuthConfigFromEnv(jwtSecret []byte) AuthConfig {
 	cfg.OIDCBrowserAuthURL = strings.TrimSpace(os.Getenv("OIDC_BROWSER_AUTH_URL"))
 	cfg.OIDCProviderName = envString("OIDC_PROVIDER_NAME", cfg.OIDCProviderName)
 	cfg.OIDCSuperuserEmails = envList("OIDC_SUPERUSER_EMAILS")
+	cfg.OIDCAllowedEmailDomains = envList("OIDC_ALLOWED_EMAIL_DOMAINS")
 	cfg.SessionCookieName = envString("SESSION_COOKIE_NAME", cfg.SessionCookieName)
 	cfg.SessionCookieSecure = envBool("SESSION_COOKIE_SECURE", cfg.SessionCookieSecure)
 	cfg.SessionSameSite = parseSameSite(envString("SESSION_COOKIE_SAMESITE", "Lax"))
@@ -327,6 +329,11 @@ func (h *AuthHandler) OIDCCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if !h.isAllowedOIDCEmail(claims) {
+		writeError(w, http.StatusForbidden, "email domain not permitted", "forbidden")
+		return
+	}
+
 	user, err := h.findOrCreateOIDCUser(r.Context(), idToken.Issuer, idToken.Subject, claims)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to provision user", "internal")
@@ -485,6 +492,30 @@ func (h *AuthHandler) isOIDCSuperuser(claims oidcUserClaims) bool {
 	}
 	for _, allowed := range h.Config.OIDCSuperuserEmails {
 		if email == strings.TrimSpace(strings.ToLower(allowed)) {
+			return true
+		}
+	}
+	return false
+}
+
+// isAllowedOIDCEmail returns true when the claims' verified email matches one
+// of OIDCAllowedEmailDomains. When the allowlist is empty, all verified emails
+// are accepted. Unverified emails are always rejected.
+func (h *AuthHandler) isAllowedOIDCEmail(claims oidcUserClaims) bool {
+	if len(h.Config.OIDCAllowedEmailDomains) == 0 {
+		return true
+	}
+	if !claims.EmailVerified {
+		return false
+	}
+	email := strings.TrimSpace(strings.ToLower(claims.Email))
+	at := strings.LastIndex(email, "@")
+	if at < 0 || at == len(email)-1 {
+		return false
+	}
+	domain := email[at+1:]
+	for _, allowed := range h.Config.OIDCAllowedEmailDomains {
+		if domain == strings.TrimSpace(strings.ToLower(allowed)) {
 			return true
 		}
 	}
