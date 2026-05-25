@@ -2,6 +2,7 @@ import { Navigate, Outlet } from "react-router-dom"
 import { useAuth } from "@/lib/auth"
 import { Sidebar } from "./sidebar"
 import { Breadcrumbs } from "./breadcrumbs"
+import { SettingsPanel } from "./settings-panel"
 
 export function AppShell() {
   const { user, loading } = useAuth()
@@ -29,6 +30,7 @@ export function AppShell() {
           <Outlet />
         </main>
       </div>
+      <SettingsPanel />
     </div>
   )
 }

@@ -60,7 +60,12 @@ export default function WorkspacePage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-semibold">Workspace</h1>
+      <div className="space-y-1">
+        <h1 className="text-2xl font-semibold">Workspace</h1>
+        <p className="text-sm text-muted-foreground">
+          Stage project configuration changes before opening a pull request.
+        </p>
+      </div>
 
       {myActivePRs.length === 0 && (
         <p className="text-muted-foreground">

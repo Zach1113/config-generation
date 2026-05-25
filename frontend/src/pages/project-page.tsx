@@ -1,12 +1,16 @@
-import { useParams } from "react-router-dom"
+import { useNavigate, useParams } from "react-router-dom"
 import { useProject } from "@/hooks/use-projects"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Button } from "@/components/ui/button"
 import { TemplateList } from "@/components/templates/template-list"
 import { EnvironmentList } from "@/components/environments/environment-list"
+import { ArrowUpRight } from "lucide-react"
 
 export default function ProjectPage() {
   const { name } = useParams<{ name: string }>()
   const { data: project, isLoading, error } = useProject(name!)
+  const navigate = useNavigate()
+
   if (isLoading) {
     return <p className="text-muted-foreground">Loading project...</p>
   }
@@ -21,11 +25,17 @@ export default function ProjectPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold">{project.name}</h1>
-        {project.description && (
-          <p className="text-muted-foreground">{project.description}</p>
-        )}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="space-y-1">
+          <h1 className="text-2xl font-semibold">{project.name}</h1>
+          <p className="text-sm text-muted-foreground">
+            {project.description || "No description provided"}
+          </p>
+        </div>
+        <Button onClick={() => navigate(`/workspace/${project.name}`)}>
+          <ArrowUpRight />
+          Open Workspace
+        </Button>
       </div>
 
       <Tabs defaultValue="templates">
@@ -39,11 +49,8 @@ export default function ProjectPage() {
         </TabsContent>
 
         <TabsContent value="environments" className="mt-4">
-          <EnvironmentList
-            projectName={name!}
-          />
+          <EnvironmentList projectName={name!} />
         </TabsContent>
-
       </Tabs>
     </div>
   )

@@ -7,7 +7,13 @@ import { TemplateEditor } from "./template-editor"
 import { CreateTemplateDialog } from "./create-template-dialog"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Pencil, ExternalLink, ChevronRight, ChevronDown } from "lucide-react"
+import {
+  ChevronDown,
+  ChevronRight,
+  ExternalLink,
+  FileCode2,
+  Pencil,
+} from "lucide-react"
 
 interface TemplateListProps {
   projectName: string
@@ -15,7 +21,11 @@ interface TemplateListProps {
   modifiedTemplates?: Set<string | null>
 }
 
-export function TemplateList({ projectName, workspaceMode, modifiedTemplates }: TemplateListProps) {
+export function TemplateList({
+  projectName,
+  workspaceMode,
+  modifiedTemplates,
+}: TemplateListProps) {
   const { data, isLoading } = useTemplates(projectName)
   const { data: draft } = useActiveDraft(workspaceMode ? projectName : "")
   const [editingTemplate, setEditingTemplate] = useState<string | null>(null)
@@ -52,9 +62,21 @@ export function TemplateList({ projectName, workspaceMode, modifiedTemplates }: 
       )}
 
       {!isLoading && templates.length === 0 && stagedNewTemplates.length === 0 && (
-        <p className="text-sm text-muted-foreground">
-          No templates yet. Create one to get started.
-        </p>
+        <div className="flex min-h-56 items-center justify-center rounded-lg border border-dashed bg-card/40 p-8 text-center">
+          <div className="mx-auto flex max-w-sm flex-col items-center gap-3">
+            <div className="flex size-11 items-center justify-center rounded-lg border bg-background text-muted-foreground">
+              <FileCode2 className="h-5 w-5" />
+            </div>
+            <div className="space-y-1">
+              <h4 className="text-base font-semibold">No templates yet</h4>
+              <p className="text-sm text-muted-foreground">
+                {workspaceMode
+                  ? "Create a template to define reusable configuration structure."
+                  : "Open the workspace to create and stage templates for review."}
+              </p>
+            </div>
+          </div>
+        </div>
       )}
 
       <div className="space-y-2">

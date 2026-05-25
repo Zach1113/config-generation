@@ -1,8 +1,17 @@
 import { NavLink } from "react-router-dom"
+import { useState } from "react"
 import { FolderOpen, Globe, GitPullRequest, Pencil, Rocket, LogOut } from "lucide-react"
 import { useAuth } from "@/lib/auth"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Separator } from "@/components/ui/separator"
 
 const navItems = [
@@ -15,11 +24,18 @@ const navItems = [
 
 export function Sidebar() {
   const { user, logout } = useAuth()
+  const [signOutOpen, setSignOutOpen] = useState(false)
 
   return (
     <aside className="flex h-screen w-60 flex-col border-r bg-sidebar text-sidebar-foreground">
-      <div className="flex h-14 items-center px-4 font-semibold">
-        Config Generation
+      <div className="flex h-14 items-center gap-3 px-4">
+        <div
+          aria-hidden="true"
+          className="flex size-8 items-center justify-center rounded-lg bg-primary text-[11px] font-semibold tracking-wide text-primary-foreground shadow-xs"
+        >
+          CG
+        </div>
+        <span className="font-semibold tracking-tight">confiGen</span>
       </div>
       <Separator />
       <nav className="flex-1 space-y-1 p-2">
@@ -29,9 +45,9 @@ export function Sidebar() {
             to={item.to}
             className={({ isActive }) =>
               cn(
-                "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
+                "relative flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
                 isActive
-                  ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                  ? "bg-sidebar-accent font-medium text-sidebar-accent-foreground before:absolute before:left-0 before:top-1/2 before:h-5 before:w-0.5 before:-translate-y-1/2 before:rounded-full before:bg-sidebar-accent-foreground"
                   : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground",
               )
             }
@@ -46,10 +62,32 @@ export function Sidebar() {
         <span className="truncate text-sm text-muted-foreground">
           {user?.username ?? "Unknown"}
         </span>
-        <Button variant="ghost" size="icon" onClick={logout} title="Sign out">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setSignOutOpen(true)}
+          title="Sign out"
+        >
           <LogOut className="h-4 w-4" />
         </Button>
       </div>
+      <Dialog open={signOutOpen} onOpenChange={setSignOutOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Sign out?</DialogTitle>
+            <DialogDescription>
+              You will need to sign in again to continue managing
+              configuration.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSignOutOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={logout}>Sign out</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </aside>
   )
 }

@@ -26,7 +26,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import {
-  Rocket,
   ChevronDown,
   ChevronRight,
   AlertCircle,
@@ -221,10 +220,11 @@ export default function DeployPage() {
 
   return (
     <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <Rocket className="h-6 w-6" />
+      <div className="space-y-1">
         <h1 className="text-2xl font-semibold">Deploy</h1>
+        <p className="text-sm text-muted-foreground">
+          Preview and export rendered configuration for a project environment.
+        </p>
       </div>
 
       {/* Project & Environment selectors */}

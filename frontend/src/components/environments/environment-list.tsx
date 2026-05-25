@@ -5,7 +5,7 @@ import { useQueries } from "@tanstack/react-query"
 import { valuesApi } from "@/api/values"
 import { AddEnvironmentDialog } from "./add-environment-dialog"
 import { Badge } from "@/components/ui/badge"
-import { ChevronRight } from "lucide-react"
+import { ChevronRight, Layers3 } from "lucide-react"
 
 interface EnvironmentListProps {
   projectName: string
@@ -26,7 +26,10 @@ export function EnvironmentList({
         .filter((c) => c.object_type === "environment")
         .map((c) => {
           try {
-            return JSON.parse(c.proposed_payload) as { name: string; description?: string }
+            return JSON.parse(c.proposed_payload) as {
+              name: string
+              description?: string
+            }
           } catch {
             return null
           }
@@ -54,7 +57,14 @@ export function EnvironmentList({
   const allEnvs = [
     ...envsWithStatus,
     ...stagedEnvs.map((e) => ({
-      env: { id: 0, project_id: 0, name: e.name, description: e.description ?? null, created_by: 0, created_at: "" },
+      env: {
+        id: 0,
+        project_id: 0,
+        name: e.name,
+        description: e.description ?? null,
+        created_by: 0,
+        created_at: "",
+      },
       hasValues: false,
       isLoading: false,
       staged: true,
@@ -75,16 +85,32 @@ export function EnvironmentList({
       )}
 
       {!envsLoading && allEnvs.length === 0 && (
-        <p className="text-sm text-muted-foreground">
-          No environments configured yet. Add one to start defining values.
-        </p>
+        <div className="flex min-h-56 items-center justify-center rounded-lg border border-dashed bg-card/40 p-8 text-center">
+          <div className="mx-auto flex max-w-sm flex-col items-center gap-3">
+            <div className="flex size-11 items-center justify-center rounded-lg border bg-background text-muted-foreground">
+              <Layers3 className="h-5 w-5" />
+            </div>
+            <div className="space-y-1">
+              <h4 className="text-base font-semibold">No environments yet</h4>
+              <p className="text-sm text-muted-foreground">
+                {workspaceMode
+                  ? "Add an environment to start defining project values."
+                  : "Open the workspace to add environments and stage changes."}
+              </p>
+            </div>
+          </div>
+        </div>
       )}
 
       <div className="space-y-2">
         {allEnvs.map(({ env, hasValues, isLoading, staged }) => (
           <Link
             key={env.name}
-            to={workspaceMode ? `/workspace/${projectName}/env/${env.name}` : `/projects/${projectName}/env/${env.name}`}
+            to={
+              workspaceMode
+                ? `/workspace/${projectName}/env/${env.name}`
+                : `/projects/${projectName}/env/${env.name}`
+            }
             className="flex items-center justify-between rounded-lg border px-4 py-3 transition-colors hover:bg-accent/50"
           >
             <div className="flex items-center gap-4">
