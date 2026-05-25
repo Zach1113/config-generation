@@ -10,6 +10,10 @@ import (
 )
 
 func NewRouter(db *sql.DB, jwtSecret []byte) chi.Router {
+	return NewRouterWithAuthConfig(db, DefaultAuthConfig(jwtSecret))
+}
+
+func NewRouterWithAuthConfig(db *sql.DB, authConfig AuthConfig) chi.Router {
 	r := chi.NewRouter()
 
 	// Prometheus metrics middleware — wraps all routes.
@@ -34,10 +38,16 @@ func NewRouter(db *sql.DB, jwtSecret []byte) chi.Router {
 	// Prometheus scrape endpoint.
 	r.Handle("/metrics", promhttp.Handler())
 
-	auth := &AuthHandler{DB: db, JWTSecret: jwtSecret}
+	auth := &AuthHandler{DB: db, Config: authConfig}
 	r.Route("/api/auth", func(r chi.Router) {
+		r.Get("/config", auth.ConfigResponse)
+		r.Get("/me", auth.Me)
+		r.Post("/session", auth.Session)
+		r.Post("/logout", auth.Logout)
 		r.Post("/register", auth.Register)
 		r.Post("/login", auth.Login)
+		r.Get("/oidc/login", auth.OIDCLogin)
+		r.Get("/oidc/callback", auth.OIDCCallback)
 	})
 
 	proj := &ProjectHandler{DB: db}
@@ -54,7 +64,8 @@ func NewRouter(db *sql.DB, jwtSecret []byte) chi.Router {
 
 	// Protected routes: JWT required.
 	r.Group(func(r chi.Router) {
-		r.Use(middleware.JWTAuth(jwtSecret))
+		r.Use(middleware.Auth(authConfig.JWTSecret, authConfig.SessionCookieName))
+		r.Use(middleware.CSRFProtection(csrfCookieName))
 
 		r.Route("/api", func(r chi.Router) {
 

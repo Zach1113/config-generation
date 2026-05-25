@@ -27,17 +27,37 @@ services:
       - "-database=postgres://configgen:configgen@db:5432/configgen?sslmode=disable"
       - "up"
 
+  dex:
+    image: ghcr.io/dexidp/dex:v2.42.0
+    command: ["dex", "serve", "/etc/dex/config.yaml"]
+    volumes:
+      - ./dev/dex/config.yaml:/etc/dex/config.yaml:ro
+    ports:
+      - "5556:5556"
+
   backend:
     build:
       context: ./backend
     depends_on:
       migrate:
         condition: service_completed_successfully
+      dex:
+        condition: service_started
     environment:
       DATABASE_URL: postgres://configgen:configgen@db:5432/configgen?sslmode=disable
       JWT_SECRET: dev-secret-change-in-production
       ADMIN_USERNAME: admin
       ADMIN_PASSWORD: admin
+      OIDC_ENABLED: "true"
+      OIDC_ISSUER_URL: http://dex:5556/dex
+      OIDC_BROWSER_AUTH_URL: http://localhost:5556/dex/auth
+      OIDC_CLIENT_ID: config-generation
+      OIDC_CLIENT_SECRET: config-generation-secret
+      OIDC_REDIRECT_URL: http://localhost:3000/api/auth/oidc/callback
+      OIDC_PROVIDER_NAME: Dex
+      OIDC_SUPERUSER_EMAILS: alice@example.com
+      SESSION_COOKIE_SECURE: "false"
+      SESSION_COOKIE_SAMESITE: Lax
     ports:
       - "8080:8080"
 

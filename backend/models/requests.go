@@ -80,6 +80,10 @@ type LoginRequest struct {
 	Password string `json:"password"`
 }
 
+type SessionRequest struct {
+	Token string `json:"token"`
+}
+
 type CreatePullRequestRequest struct {
 	Title            string  `json:"title"`
 	Description      *string `json:"description"`

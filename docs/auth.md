@@ -2,49 +2,24 @@
 
 ## Overview
 
-The system uses username/password authentication with JWT bearer tokens. Users register or log in via public API endpoints, receive a JWT token, and include it in subsequent requests.
+The system supports local username/password authentication and optional OIDC login using the OAuth 2.0 authorization-code flow. Both flows issue the app's internal JWT and set it as an HttpOnly session cookie. Existing Bearer JWT requests remain supported for API compatibility and tests.
 
-## Authentication Flow
+Authentication only proves identity. POST access is still controlled by permissions. The seeded admin account and configured superuser identities bypass permission checks; other users need roles such as `create:project` or project-scoped permissions.
 
-1. User calls `POST /api/auth/register` or `POST /api/auth/login` with credentials
-2. Server validates credentials and returns a JWT token
-3. Client stores the token and sends it as `Authorization: Bearer <token>` on all subsequent API requests
-4. The JWT middleware validates the token on every protected request and extracts the user identity
+## Session Cookies
 
-## JWT Token
+- Session cookie: `configgen_session` by default.
+- CSRF cookie: `configgen_csrf`.
+- SameSite: `Lax` by default.
+- Secure: enabled by default, disabled in local `docker-compose.yml`.
+- Domain: not set, so cookies are host-only.
+- Path: `/`.
 
-- **Signing method:** HMAC-SHA256
-- **Secret:** Configured via `JWT_SECRET` environment variable
-- **Expiry:** 24 hours from issuance
-- **Claims:**
+The frontend sends credentialed API requests and includes `X-CSRF-Token` on unsafe methods by copying the value from the readable `configgen_csrf` cookie. Cookie-authenticated `POST`, `PUT`, `PATCH`, and `DELETE` requests without a matching CSRF header receive `403`. Bearer-token requests are exempt for compatibility.
 
-| Claim | Type | Description |
-|---|---|---|
-| `user_id` | `float64` | The user's database ID |
-| `username` | `string` | The user's username |
-| `exp` | `int64` | Unix timestamp of token expiry |
+## Local Password Flow
 
-## API Endpoints
-
-### `POST /api/auth/register`
-
-Creates a new user account and returns a JWT token.
-
-**Request body:**
-
-```json
-{
-  "username": "alice",
-  "password": "securepassword",
-  "display_name": "Alice Smith"
-}
-```
-
-- `username` — required, must be unique
-- `password` — required, minimum 8 characters
-- `display_name` — optional
-
-**Success response (201):**
+`POST /api/auth/register` and `POST /api/auth/login` remain available unless disabled by environment config. On success, both endpoints set the session and CSRF cookies and return the existing response shape:
 
 ```json
 {
@@ -58,62 +33,96 @@ Creates a new user account and returns a JWT token.
 }
 ```
 
-**Error responses:**
-- `400` — missing/invalid fields or password too short
-- `409` — username already taken
+The returned token is retained for compatibility. The SPA no longer stores new tokens in `localStorage`.
 
-### `POST /api/auth/login`
+## OIDC Flow
 
-Authenticates an existing user and returns a JWT token.
+1. The frontend calls `GET /api/auth/config`.
+2. If OIDC is enabled, the login page links to `GET /api/auth/oidc/login?return_to=/projects`.
+3. The backend stores short-lived HttpOnly `state`, `nonce`, and return-path cookies, then redirects to the provider.
+4. The provider redirects back to `GET /api/auth/oidc/callback`.
+5. The backend validates state, exchanges the code, verifies the ID token, links or creates the local user, sets app session cookies, and redirects to the safe relative return path.
 
-**Request body:**
+Auto-provisioned OIDC users:
+
+- Use verified email as `username` when available.
+- Fall back to a stable provider-derived username if email is missing, unverified, or already taken.
+- Store `password_hash = ''`, so OIDC users cannot use password login unless explicitly updated later.
+- Receive no roles automatically. They can sign in but need an admin to assign roles before they can access protected resources.
+- Are promoted to superuser when their verified email is listed in `OIDC_SUPERUSER_EMAILS`.
+
+## Auth Endpoints
+
+### `GET /api/auth/config`
+
+Returns frontend feature flags:
 
 ```json
 {
-  "username": "alice",
-  "password": "securepassword"
+  "oidc_enabled": true,
+  "oidc_provider_name": "Dex",
+  "password_login_enabled": true,
+  "registration_enabled": true
 }
 ```
 
-**Success response (200):**
+### `GET /api/auth/me`
+
+Returns the current user for either cookie or Bearer authentication. Returns `401` when unauthenticated.
+
+### `POST /api/auth/session`
+
+Migration bridge for old SPA sessions. Accepts an existing Bearer JWT and sets the HttpOnly session cookie:
 
 ```json
 {
-  "token": "eyJhbG...",
-  "user": {
-    "id": 1,
-    "username": "alice",
-    "display_name": "Alice Smith",
-    "created_at": "2025-01-01T00:00:00Z"
-  }
+  "token": "eyJhbG..."
 }
 ```
 
-**Error responses:**
-- `400` — invalid request body
-- `401` — invalid username or password
+### `POST /api/auth/logout`
 
-## Password Storage
+Clears the session and CSRF cookies. If a session cookie is present, the request must include a valid `X-CSRF-Token` header.
 
-Passwords are hashed using bcrypt with the default cost factor before storage. The `password_hash` column in the `users` table stores the bcrypt hash. Plaintext passwords are never stored or logged.
+## Environment
+
+| Variable | Default | Description |
+|---|---:|---|
+| `JWT_SECRET` | required | Signs internal app JWTs |
+| `OIDC_ENABLED` | `false` | Enables OIDC login |
+| `OIDC_ISSUER_URL` | | OIDC issuer discovery URL |
+| `OIDC_CLIENT_ID` | | OIDC client ID |
+| `OIDC_CLIENT_SECRET` | | OIDC client secret |
+| `OIDC_REDIRECT_URL` | | Callback URL registered with the provider |
+| `OIDC_BROWSER_AUTH_URL` | | Optional browser-facing authorization URL override for local Docker setups |
+| `OIDC_SCOPES` | `openid email profile` | Space-separated provider scopes |
+| `OIDC_PROVIDER_NAME` | `SSO` | Login button/provider display name |
+| `OIDC_SUPERUSER_EMAILS` | | Comma- or space-separated verified OIDC email addresses that should be promoted to app superusers |
+| `SESSION_COOKIE_NAME` | `configgen_session` | App session cookie name |
+| `SESSION_COOKIE_SECURE` | `true` | Whether cookies require HTTPS |
+| `SESSION_COOKIE_SAMESITE` | `Lax` | `Lax`, `Strict`, or `None` |
+| `PASSWORD_LOGIN_ENABLED` | `true` | Enables local password login |
+| `REGISTRATION_ENABLED` | `true` | Enables public registration |
+
+## Local Dex
+
+`docker-compose.yml` includes a Dex provider for local testing. Open the app at:
+
+```text
+http://localhost:3000
+```
+
+The registered callback is:
+
+```text
+http://localhost:3000/api/auth/oidc/callback
+```
+
+The backend discovers Dex on the Docker network at `http://dex:5556/dex`, while the browser is sent to `http://localhost:5556/dex/auth`.
+
+Static test users are configured in `dev/dex/config.yaml`. The local password for both users is `password`.
+`docker-compose.yml` promotes `alice@example.com` to superuser for local development.
 
 ## Admin User
 
-A superuser admin account is automatically created on server startup when the following environment variables are set:
-
-| Variable | Description |
-|---|---|
-| `ADMIN_USERNAME` | Username for the admin account |
-| `ADMIN_PASSWORD` | Password for the admin account |
-
-The seeding is idempotent — if a user with the given username already exists, no changes are made.
-
-In the default `docker-compose.yml`, the admin credentials are `admin` / `admin`.
-
-## Superuser
-
-Users with the `superuser` flag set to `true` bypass all permission checks. This flag is only set via the admin seeding mechanism (not exposed through the API). Superusers can perform any action on any resource without needing explicit role assignments.
-
-## Protected Routes
-
-All routes under `/api/*` (except `/api/auth/*`) require a valid JWT token. Requests without a token or with an expired/invalid token receive a `401 Unauthorized` response.
+A superuser admin account is still created on startup when `ADMIN_USERNAME` and `ADMIN_PASSWORD` are set. The default compose credentials remain `admin` / `admin`.

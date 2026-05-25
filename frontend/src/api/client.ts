@@ -2,12 +2,32 @@ import axios from "axios"
 
 export const client = axios.create({
   baseURL: "/api",
+  withCredentials: true,
 })
 
+function getCookie(name: string): string | null {
+  const prefix = `${name}=`
+  return (
+    document.cookie
+      .split(";")
+      .map((part) => part.trim())
+      .find((part) => part.startsWith(prefix))
+      ?.slice(prefix.length) ?? null
+  )
+}
+
+function isUnsafeMethod(method?: string): boolean {
+  return !["get", "head", "options", "trace"].includes(
+    (method ?? "get").toLowerCase(),
+  )
+}
+
 client.interceptors.request.use((config) => {
-  const token = localStorage.getItem("auth_token")
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`
+  if (isUnsafeMethod(config.method)) {
+    const csrf = getCookie("configgen_csrf")
+    if (csrf) {
+      config.headers["X-CSRF-Token"] = csrf
+    }
   }
   return config
 })
